@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     const result = await createTransaction({
       customerId: body.customerId,
       vehicleId: body.vehicleId ?? null,
-      staffId: body.staffId ?? "staff_001",
+      staffId: body.staffId ?? null,
       items: body.items,
       paymentMethod: body.paymentMethod ?? "card",
     });

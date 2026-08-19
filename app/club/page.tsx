@@ -18,7 +18,8 @@ import { WalletButtons } from "./WalletButtons";
 import Link from "next/link";
 
 // Phase 1/2: hardcoded to the demo customer until auth is wired in Phase 1.5.
-const DEMO_CUSTOMER_ID = "cus_001";
+// This UUID matches John Smith in supabase/seed.sql.
+const DEMO_CUSTOMER_ID = "55555555-0000-0000-0000-000000000001";
 
 export default async function ClubHome() {
   const [customer, rewards, ledger, vehicles, tiers, stampCard, services, referrals, vouchers, notifications, giftCards] =

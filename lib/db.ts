@@ -210,7 +210,7 @@ async function earnStamps(customerId: string, transactionId: string, serviceIds:
 export async function createTransaction(input: {
   customerId: string;
   vehicleId: string | null;
-  staffId: string;
+  staffId: string | null;
   items: { serviceId: string; price: number; pointsEarned: number }[];
   paymentMethod: Transaction["payment_method"];
 }): Promise<{ transaction: Transaction; ledgerEntry: PointsLedgerEntry }> {
@@ -279,7 +279,7 @@ export async function createTransaction(input: {
 export async function redeemReward(input: {
   customerId: string;
   rewardId: string;
-  staffId: string;
+  staffId: string | null;
 }): Promise<RewardRedemption> {
   const client = db();
   const [{ data: customer }, { data: reward }] = await Promise.all([
