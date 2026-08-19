@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-ink text-chalk font-body antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display;
+  }
+  :focus-visible {
+    outline: 2px solid #2FBF71;
+    outline-offset: 2px;
+  }
+}
+
+/* Gauge sweep animation for the signature "polish dial" component */
+@keyframes dial-sweep {
+  from { stroke-dashoffset: var(--dial-full); }
+  to { stroke-dashoffset: var(--dial-offset); }
+}
+.dial-arc {
+  animation: dial-sweep 900ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dial-arc { animation: none; }
+}
