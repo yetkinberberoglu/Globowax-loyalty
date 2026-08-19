@@ -1,7 +1,9 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { listTenantsWithUsage } from "@/lib/db";
+import { getAuthedStaff } from "@/lib/auth";
 
 const planLabels: Record<string, string> = {
   starter: "Starter — €79/mo",
@@ -10,6 +12,10 @@ const planLabels: Record<string, string> = {
 };
 
 export default async function SuperAdminPage() {
+  const staff = await getAuthedStaff();
+  if (!staff || staff.role !== "super_admin") {
+    redirect("/admin/login");
+  }
   const rows = await listTenantsWithUsage();
 
   return (

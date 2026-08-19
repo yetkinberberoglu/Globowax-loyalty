@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
+import { redirect } from "next/navigation";
 import {
-  getCustomer,
   listRewards,
   listLedgerForCustomer,
   listVehiclesForCustomer,
@@ -13,32 +13,34 @@ import {
   listNotificationsForCustomer,
   listGiftCardsForCustomer,
 } from "@/lib/db";
+import { getAuthedCustomer } from "@/lib/auth";
+import { generateQRDataUrl } from "@/lib/qr";
 import { PolishDial } from "./PolishDial";
 import { WalletButtons } from "./WalletButtons";
 import { AddVehicleForm } from "./AddVehicleForm";
+import { LogoutButton } from "./LogoutButton";
 import Link from "next/link";
 
-// Phase 1/2: hardcoded to the demo customer until auth is wired in Phase 1.5.
-// This UUID matches John Smith in supabase/seed.sql.
-const DEMO_CUSTOMER_ID = "55555555-0000-0000-0000-000000000001";
-
 export default async function ClubHome() {
-  const [customer, rewards, ledger, vehicles, tiers, stampCard, services, referrals, vouchers, notifications, giftCards] =
-    await Promise.all([
-      getCustomer(DEMO_CUSTOMER_ID),
-      listRewards(),
-      listLedgerForCustomer(DEMO_CUSTOMER_ID),
-      listVehiclesForCustomer(DEMO_CUSTOMER_ID),
-      listTiers(),
-      getStampCardForCustomer(DEMO_CUSTOMER_ID),
-      listServices(),
-      listReferralsForCustomer(DEMO_CUSTOMER_ID),
-      listVouchersForCustomer(DEMO_CUSTOMER_ID),
-      listNotificationsForCustomer(DEMO_CUSTOMER_ID),
-      listGiftCardsForCustomer(DEMO_CUSTOMER_ID),
-    ]);
+  const customer = await getAuthedCustomer();
+  if (!customer) {
+    redirect("/login");
+  }
 
-  if (!customer) return null;
+  const [rewards, ledger, vehicles, tiers, stampCard, services, referrals, vouchers, notifications, giftCards, qrDataUrl] =
+    await Promise.all([
+      listRewards(),
+      listLedgerForCustomer(customer.id),
+      listVehiclesForCustomer(customer.id),
+      listTiers(),
+      getStampCardForCustomer(customer.id),
+      listServices(),
+      listReferralsForCustomer(customer.id),
+      listVouchersForCustomer(customer.id),
+      listNotificationsForCustomer(customer.id),
+      listGiftCardsForCustomer(customer.id),
+      generateQRDataUrl(customer.referral_code),
+    ]);
 
   const stampService = services.find((s) => s.id === stampCard?.service_id);
 
@@ -48,8 +50,9 @@ export default async function ClubHome() {
 
   return (
     <main className="min-h-screen max-w-md mx-auto px-5 pb-16">
-      <div className="pt-4">
+      <div className="pt-4 flex items-center justify-between">
         <Link href="/" className="text-fog text-xs hover:text-chalk">← Home</Link>
+        <LogoutButton />
       </div>
       <header className="pt-4 pb-6 flex items-center justify-between">
         <div>
@@ -194,6 +197,18 @@ export default async function ClubHome() {
         </div>
         <div className="mt-2">
           <AddVehicleForm customerId={customer.id} />
+        </div>
+      </section>
+
+      <section className="mt-8">
+        <h2 className="text-sm uppercase tracking-wide text-fog mb-3">My card</h2>
+        <div className="rounded-card border border-steel bg-graphite p-4 flex items-center gap-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={qrDataUrl} alt="Your Globowax Club QR code" className="w-24 h-24 rounded-lg" />
+          <div>
+            <p className="text-fog text-xs">Show this at the counter</p>
+            <p className="font-mono text-sm text-polish mt-1">{customer.referral_code}</p>
+          </div>
         </div>
       </section>
 

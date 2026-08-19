@@ -347,7 +347,7 @@ export async function redeemReward(input: {
   return redemption as RewardRedemption;
 }
 
-async function awardPoints(customerId: string, points: number, type: PointsLedgerEntry["type"]) {
+export async function awardPoints(customerId: string, points: number, type: PointsLedgerEntry["type"]) {
   const client = db();
   const { data: customer } = await client.from("customers").select("points_balance").eq("id", customerId).single();
   const newBalance = Number(customer?.points_balance ?? 0) + points;
@@ -378,6 +378,54 @@ export async function listReferralsForCustomer(customerId: string): Promise<Refe
  * awards both sides. Fraud prevention: a customer can never redeem their
  * own code, matched on mobile number since every customer has one.
  */
+/**
+ * Direct customer registration — no referral code required. Used by
+ * /signup (with authUserId set, linking the new Supabase Auth user) and
+ * by staff creating a walk-in customer from the POS screen (authUserId
+ * left null; that customer can link their own login later by signing up
+ * with the same mobile/email, or staff can link it manually).
+ */
+export async function getCustomerByReferralCode(code: string): Promise<Customer | undefined> {
+  const { data, error } = await db().from("customers").select("*").eq("referral_code", code).maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data as Customer) ?? undefined;
+}
+
+export async function registerCustomer(input: {
+  name: string;
+  surname: string;
+  mobile: string;
+  email: string | null;
+  authUserId: string | null;
+}): Promise<Customer> {
+  const referralCode = `${input.name}${Math.floor(Math.random() * 900 + 100)}`.toUpperCase();
+
+  const { data: customer, error } = await db()
+    .from("customers")
+    .insert({
+      tenant_id: TENANT_ID,
+      name: input.name,
+      surname: input.surname,
+      mobile: input.mobile,
+      email: input.email,
+      referral_code: referralCode,
+      points_balance: 0,
+      auth_user_id: input.authUserId,
+    })
+    .select()
+    .single();
+  if (error || !customer) throw new Error(error?.message ?? "Failed to register customer");
+
+  const tiers = await getTiersDesc();
+  const lowestTier = tiers[tiers.length - 1];
+  if (lowestTier) {
+    await db().from("customers").update({ tier_id: lowestTier.id }).eq("id", customer.id);
+    customer.tier_id = lowestTier.id;
+  }
+
+  return customer as Customer;
+}
+
 export async function redeemReferral(input: {
   referralCode: string;
   newCustomer: { name: string; surname: string; mobile: string; email: string | null };

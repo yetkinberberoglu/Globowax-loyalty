@@ -17,6 +17,7 @@ export interface AppUser {
   role: Role;
   email: string;
   full_name: string;
+  auth_user_id: string | null;
 }
 
 export interface Customer {
@@ -35,6 +36,7 @@ export interface Customer {
   points_balance: number; // cached — always derived from points_ledger
   tier_id: string;
   created_at: string;
+  auth_user_id: string | null;
 }
 
 export interface Vehicle {
