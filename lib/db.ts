@@ -148,6 +148,33 @@ export async function listVehiclesForCustomer(customerId: string) {
   return data ?? [];
 }
 
+/**
+ * Self-service vehicle registration — a customer adding their own car
+ * from the /club screen. Kept intentionally minimal (make, model,
+ * reg number) since that's all the doc's Vehicle CRM strictly needs to
+ * function; year/colour/fuel_type stay optional for later.
+ */
+export async function createVehicle(input: {
+  customerId: string;
+  make: string;
+  model: string;
+  regNumber: string;
+}) {
+  const { data, error } = await db()
+    .from("vehicles")
+    .insert({
+      tenant_id: TENANT_ID,
+      customer_id: input.customerId,
+      make: input.make,
+      model: input.model,
+      reg_number: input.regNumber,
+    })
+    .select()
+    .single();
+  if (error || !data) throw new Error(error?.message ?? "Failed to add vehicle");
+  return data;
+}
+
 export async function listLedgerForCustomer(customerId: string): Promise<PointsLedgerEntry[]> {
   const { data, error } = await db()
     .from("points_ledger")

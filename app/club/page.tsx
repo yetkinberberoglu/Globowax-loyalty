@@ -15,6 +15,7 @@ import {
 } from "@/lib/db";
 import { PolishDial } from "./PolishDial";
 import { WalletButtons } from "./WalletButtons";
+import { AddVehicleForm } from "./AddVehicleForm";
 import Link from "next/link";
 
 // Phase 1/2: hardcoded to the demo customer until auth is wired in Phase 1.5.
@@ -190,6 +191,9 @@ export default async function ClubHome() {
               <span className="text-fog">{v.reg_number}</span>
             </div>
           ))}
+        </div>
+        <div className="mt-2">
+          <AddVehicleForm customerId={customer.id} />
         </div>
       </section>
 
