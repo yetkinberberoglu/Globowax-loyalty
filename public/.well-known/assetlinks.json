@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.globowax.club",
+        "sha256_cert_fingerprints": ["FB:4B:45:F7:D8:C8:9A:87:B4:52:66:D1:0F:2B:50:0D:C3:E1:86:CE:55:8C:D5:0F:C0:67:18:E6:D5:89:CE:D9"]
+      }
+    }]
