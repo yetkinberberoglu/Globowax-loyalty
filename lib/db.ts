@@ -1231,3 +1231,56 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     active_customers: (customers ?? []).length,
   };
 }
+
+/**
+ * Transaction history for the admin /admin/history page — today's summary
+ * numbers are always "as of right now", but a business still needs to
+ * look back at past days. Returns the last `days` days, each with total
+ * revenue/visit count and the individual transactions (with the
+ * customer's name joined in), most recent day first.
+ */
+export async function getTransactionHistory(days: number = 30): Promise<
+  {
+    date: string;
+    revenue: number;
+    visits: number;
+    transactions: {
+      id: string;
+      created_at: string;
+      total_amount: number;
+      payment_method: string;
+      customer_name: string;
+    }[];
+  }[]
+> {
+  const client = db();
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data: txns } = await client
+    .from("transactions")
+    .select("id, created_at, total_amount, payment_method, customers(name, surname)")
+    .eq("tenant_id", TENANT_ID)
+    .gte("created_at", since)
+    .order("created_at", { ascending: false });
+
+  const byDay = new Map<string, { revenue: number; visits: number; transactions: any[] }>();
+  for (const t of txns ?? []) {
+    const day = t.created_at.slice(0, 10);
+    if (!byDay.has(day)) byDay.set(day, { revenue: 0, visits: 0, transactions: [] });
+    const bucket = byDay.get(day)!;
+    bucket.revenue += Number(t.total_amount);
+    bucket.visits += 1;
+    const customer = Array.isArray(t.customers) ? t.customers[0] : t.customers;
+    bucket.transactions.push({
+      id: t.id,
+      created_at: t.created_at,
+      total_amount: Number(t.total_amount),
+      payment_method: t.payment_method,
+      customer_name: customer ? `${customer.name} ${customer.surname}` : "Unknown",
+    });
+  }
+
+  return Array.from(byDay.entries())
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+    .map(([date, bucket]) => ({ date, ...bucket }));
+}

@@ -43,6 +43,9 @@ export default async function AdminDashboard() {
             <Link href="/admin/messages" className="text-xs text-fog hover:text-chalk border border-steel rounded-full px-3 py-1.5">
               Messages
             </Link>
+            <Link href="/admin/history" className="text-xs text-fog hover:text-chalk border border-steel rounded-full px-3 py-1.5">
+              History
+            </Link>
             <AdminLogoutButton />
           </div>
         </div>
