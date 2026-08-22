@@ -18,12 +18,27 @@ export default function LoginPage() {
     setLoading(true);
     const supabase = supabaseBrowser();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       setError(error.message);
       return;
     }
-    router.push("/club");
+
+    // This email/password might belong to a staff account, not a
+    // customer — check before assuming /club is the right destination.
+    const res = await fetch("/api/auth/account-type");
+    const data = await res.json();
+    setLoading(false);
+
+    if (data.type === "customer") {
+      router.push("/club");
+    } else if (data.type === "staff") {
+      router.push("/admin");
+    } else {
+      await supabase.auth.signOut();
+      setError("This account isn't linked to a Globowax Club customer profile yet. New here? Create an account below.");
+      return;
+    }
     router.refresh();
   }
 

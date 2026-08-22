@@ -18,12 +18,25 @@ export default function AdminLoginPage() {
     setLoading(true);
     const supabase = supabaseBrowser();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       setError(error.message);
       return;
     }
-    router.push("/admin");
+
+    const res = await fetch("/api/auth/account-type");
+    const data = await res.json();
+    setLoading(false);
+
+    if (data.type === "staff") {
+      router.push("/admin");
+    } else if (data.type === "customer") {
+      router.push("/club");
+    } else {
+      await supabase.auth.signOut();
+      setError("This account isn't linked to a staff profile.");
+      return;
+    }
     router.refresh();
   }
 
