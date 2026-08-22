@@ -45,6 +45,11 @@ export default function SignupPage() {
     setLoading(false);
 
     if (!res.ok) {
+      // The auth account was created but linking it to a customer row
+      // failed (duplicate email, bad referral code, etc.) — sign back out
+      // so the browser isn't left holding a session with no customer
+      // record behind it (that combination causes a redirect loop on /club).
+      await supabase.auth.signOut();
       setError(body.error ?? "Something went wrong finishing signup");
       return;
     }

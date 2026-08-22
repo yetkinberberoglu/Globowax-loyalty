@@ -21,6 +21,9 @@ export default function Home() {
       <Link href="/admin/login" className="text-fog text-xs hover:text-chalk mt-2">
         Staff sign in →
       </Link>
+      <Link href="/privacy" className="text-fog text-xs hover:text-chalk absolute bottom-6">
+        Privacy Policy
+      </Link>
     </main>
   );
 }

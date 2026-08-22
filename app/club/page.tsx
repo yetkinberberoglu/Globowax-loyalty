@@ -15,6 +15,7 @@ import {
 } from "@/lib/db";
 import { getAuthedCustomer } from "@/lib/auth";
 import { generateQRDataUrl } from "@/lib/qr";
+import { supabaseServerSSR } from "@/lib/supabase/server-ssr";
 import { PolishDial } from "./PolishDial";
 import { WalletButtons } from "./WalletButtons";
 import { AddVehicleForm } from "./AddVehicleForm";
@@ -24,6 +25,12 @@ import Link from "next/link";
 export default async function ClubHome() {
   const customer = await getAuthedCustomer();
   if (!customer) {
+    // A Supabase Auth session can exist with no matching customers row (e.g.
+    // signup completed the auth step but the customer-linking API call
+    // failed). Redirecting straight to /login in that case would loop
+    // forever against middleware.ts, which sends any authenticated session
+    // away from /login — so we clear the orphaned session first.
+    await supabaseServerSSR().auth.signOut();
     redirect("/login");
   }
 
