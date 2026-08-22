@@ -340,6 +340,18 @@ export async function recordExternalTransaction(input: {
       email: null,
       authUserId: null,
     });
+  } else if (input.name && customer.name === "Globowax" && customer.surname === "Customer") {
+    // An earlier visit had no owner name filled in, so this customer got
+    // created with the "Globowax Customer" placeholder — fix it now that
+    // a real name has come through, without ever touching a name a
+    // customer or staff already set correctly.
+    const { data: updated } = await client
+      .from("customers")
+      .update({ name: input.name, surname: input.surname || customer.surname })
+      .eq("id", customer.id)
+      .select()
+      .single();
+    if (updated) customer = updated;
   }
 
   let matchedService: Service | null = null;
