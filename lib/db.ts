@@ -45,6 +45,25 @@ import type { MessageProvider } from "./providers/types";
 
 const TENANT_ID = process.env.TENANT_ID ?? "";
 
+/**
+ * True if two phone numbers likely belong to the same person, even across
+ * common real-world entry inconsistencies: spacing/punctuation, a missing
+ * "+", or — the trickiest one — a missing country code (e.g. staff typing
+ * the local 8-digit Malta number "99427015" instead of "+35699427015").
+ * Exact digits match first; if that fails, treat it as a match when the
+ * shorter number's digits are a suffix of the longer one's, as long as the
+ * shorter one is at least 7 digits (avoids false positives on very short
+ * inputs matching by coincidence).
+ */
+function phonesMatch(a: string, b: string): boolean {
+  const da = a.replace(/\D/g, "");
+  const db_ = b.replace(/\D/g, "");
+  if (!da || !db_) return false;
+  if (da === db_) return true;
+  const [shorter, longer] = da.length <= db_.length ? [da, db_] : [db_, da];
+  return shorter.length >= 7 && longer.endsWith(shorter);
+}
+
 function db() {
   return supabaseServer();
 }
@@ -322,15 +341,14 @@ export async function recordExternalTransaction(input: {
   let { data: customer } = await client.from("customers").select("*").eq("mobile", input.mobile).maybeSingle();
 
   // The two apps may store phone numbers in slightly different formats
-  // ("+356 9912 3456" vs "+35699123456"). If an exact match fails, compare
-  // digits-only before giving up and creating a new customer — this keeps
-  // the same person from ending up with two separate Club accounts just
-  // because of spacing.
+  // ("+356 9912 3456" vs "+35699123456", or missing the country code
+  // entirely). If an exact match fails, fall back to phonesMatch before
+  // giving up and creating a new customer — this keeps the same person
+  // from ending up with two separate Club accounts just because of
+  // formatting.
   if (!customer) {
-    const normalizedInput = input.mobile.replace(/\D/g, "");
     const { data: candidates } = await client.from("customers").select("*").eq("tenant_id", TENANT_ID);
-    customer =
-      (candidates ?? []).find((c) => c.mobile.replace(/\D/g, "") === normalizedInput) ?? null;
+    customer = (candidates ?? []).find((c) => phonesMatch(c.mobile, input.mobile)) ?? null;
   }
   if (!customer) {
     customer = await registerCustomer({
@@ -579,11 +597,8 @@ export async function findCustomerByMobile(mobile: string): Promise<Customer | u
   const { data: exact } = await client.from("customers").select("*").eq("mobile", mobile).maybeSingle();
   if (exact) return exact as Customer;
 
-  const normalizedInput = mobile.replace(/\D/g, "");
   const { data: candidates } = await client.from("customers").select("*").eq("tenant_id", TENANT_ID);
-  return (candidates ?? []).find((c) => c.mobile.replace(/\D/g, "") === normalizedInput) as
-    | Customer
-    | undefined;
+  return (candidates ?? []).find((c) => phonesMatch(c.mobile, mobile)) as Customer | undefined;
 }
 
 /**
