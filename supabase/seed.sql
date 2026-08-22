@@ -53,8 +53,8 @@ insert into gift_cards (tenant_id, code, initial_value, balance, purchaser_name,
   ('11111111-1111-1111-1111-111111111111', 'GW-GIFT-4Q7K', 100, 65, 'Anonymous walk-in', '55555555-0000-0000-0000-000000000001', 'GW-GIFT-4Q7K', '2026-07-01T10:00:00Z');
 
 insert into campaigns (id, tenant_id, name, trigger, trigger_value, action, action_config, active) values
-  ('99999999-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', '30-day win-back', 'inactive_30d', 30, 'send_voucher',
-    '{"message":"We miss you — here''s €10 off your next wash.","discount_value":10,"discount_type":"fixed","channel":"whatsapp"}', true),
+  ('99999999-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', '30-day win-back', 'inactive_30d', 30, 'add_points',
+    '{"message":"We miss you — here''s €10 off your next wash.","points_value":200,"channel":"whatsapp"}', true),
   ('99999999-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Close to a reward', 'points_threshold', 900, 'send_notification',
     '{"message":"You''re close to your next reward — keep going!","channel":"whatsapp"}', true),
   ('99999999-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', '5th visit thank-you', 'nth_visit', 5, 'send_notification',

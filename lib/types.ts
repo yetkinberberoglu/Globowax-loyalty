@@ -179,7 +179,7 @@ export type CampaignTrigger =
   | "points_threshold"
   | "nth_visit";
 
-export type CampaignAction = "send_voucher" | "send_notification";
+export type CampaignAction = "send_voucher" | "send_notification" | "add_points";
 
 export interface Campaign {
   id: string;
@@ -192,6 +192,7 @@ export interface Campaign {
     message: string;
     discount_value?: number;
     discount_type?: "fixed" | "percentage";
+    points_value?: number;
     channel?: MessageChannel;
   };
   active: boolean;

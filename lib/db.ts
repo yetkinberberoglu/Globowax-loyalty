@@ -801,6 +801,20 @@ async function fireCampaign(customerId: string, campaign: Campaign) {
       expiry: expiry.toISOString().slice(0, 10),
       qr_code: voucherCode,
     });
+  } else if (campaign.action === "add_points" && campaign.action_config.points_value) {
+    const { data: customer } = await client.from("customers").select("points_balance").eq("id", customerId).single();
+    if (customer) {
+      const newBalance = Number(customer.points_balance) + Number(campaign.action_config.points_value);
+      await client.from("points_ledger").insert({
+        tenant_id: TENANT_ID,
+        customer_id: customerId,
+        transaction_id: null,
+        type: "earning",
+        points: campaign.action_config.points_value,
+        balance_after: newBalance,
+      });
+      await recalculateTier(customerId, newBalance);
+    }
   }
 
   const channel = campaign.action_config.channel;
@@ -1283,4 +1297,49 @@ export async function getTransactionHistory(days: number = 30): Promise<
   return Array.from(byDay.entries())
     .sort((a, b) => (a[0] < b[0] ? 1 : -1))
     .map(([date, bucket]) => ({ date, ...bucket }));
+}
+
+/**
+ * Same shape as one entry from getTransactionHistory, but for a single
+ * specific calendar date (any day, not limited to the recent-days
+ * window) — powers the History page's date picker.
+ */
+export async function getTransactionsForDate(date: string): Promise<{
+  date: string;
+  revenue: number;
+  visits: number;
+  transactions: {
+    id: string;
+    created_at: string;
+    total_amount: number;
+    payment_method: string;
+    customer_name: string;
+  }[];
+}> {
+  const client = db();
+  const { data: txns } = await client
+    .from("transactions")
+    .select("id, created_at, total_amount, payment_method, customers(name, surname)")
+    .eq("tenant_id", TENANT_ID)
+    .gte("created_at", `${date}T00:00:00Z`)
+    .lt("created_at", `${date}T23:59:59.999Z`)
+    .order("created_at", { ascending: false });
+
+  const transactions = (txns ?? []).map((t) => {
+    const customer = Array.isArray(t.customers) ? t.customers[0] : t.customers;
+    return {
+      id: t.id,
+      created_at: t.created_at,
+      total_amount: Number(t.total_amount),
+      payment_method: t.payment_method,
+      customer_name: customer ? `${customer.name} ${customer.surname}` : "Unknown",
+    };
+  });
+
+  return {
+    date,
+    revenue: transactions.reduce((s, t) => s + t.total_amount, 0),
+    visits: transactions.length,
+    transactions,
+  };
 }
