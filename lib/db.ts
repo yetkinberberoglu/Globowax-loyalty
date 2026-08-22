@@ -327,10 +327,10 @@ export async function recordExternalTransaction(input: {
   // the same person from ending up with two separate Club accounts just
   // because of spacing.
   if (!customer) {
-    const normalizedInput = input.mobile.replace(/[^\d+]/g, "");
+    const normalizedInput = input.mobile.replace(/\D/g, "");
     const { data: candidates } = await client.from("customers").select("*").eq("tenant_id", TENANT_ID);
     customer =
-      (candidates ?? []).find((c) => c.mobile.replace(/[^\d+]/g, "") === normalizedInput) ?? null;
+      (candidates ?? []).find((c) => c.mobile.replace(/\D/g, "") === normalizedInput) ?? null;
   }
   if (!customer) {
     customer = await registerCustomer({
@@ -579,9 +579,9 @@ export async function findCustomerByMobile(mobile: string): Promise<Customer | u
   const { data: exact } = await client.from("customers").select("*").eq("mobile", mobile).maybeSingle();
   if (exact) return exact as Customer;
 
-  const normalizedInput = mobile.replace(/[^\d+]/g, "");
+  const normalizedInput = mobile.replace(/\D/g, "");
   const { data: candidates } = await client.from("customers").select("*").eq("tenant_id", TENANT_ID);
-  return (candidates ?? []).find((c) => c.mobile.replace(/[^\d+]/g, "") === normalizedInput) as
+  return (candidates ?? []).find((c) => c.mobile.replace(/\D/g, "") === normalizedInput) as
     | Customer
     | undefined;
 }
