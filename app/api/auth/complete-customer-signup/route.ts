@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
-import { registerCustomer, getCustomerByReferralCode, awardPoints } from "@/lib/db";
+import { registerCustomer, findCustomerByMobile, linkAuthUserToCustomer, getCustomerByReferralCode, awardPoints } from "@/lib/db";
 
 const REFERRAL_REWARD = { referrer: 500, referred: 250 };
 
@@ -23,9 +23,16 @@ export async function POST(req: Request) {
   }
 
   try {
-    const customer = await registerCustomer({ name, surname, mobile, email, authUserId });
+    // A customer row for this phone number might already exist — e.g.
+    // created by the app.globowaxmalta.com webhook from an earlier
+    // in-store visit before this person ever signed up for an account.
+    // Link to that one instead of creating a second, empty customer.
+    const existing = await findCustomerByMobile(mobile);
+    const customer = existing
+      ? await linkAuthUserToCustomer(existing.id, authUserId)
+      : await registerCustomer({ name, surname, mobile, email, authUserId });
 
-    if (referralCode) {
+    if (referralCode && !existing) {
       const referrer = await getCustomerByReferralCode(referralCode);
       if (referrer && referrer.mobile !== mobile) {
         await awardPoints(referrer.id, REFERRAL_REWARD.referrer, "earning");

@@ -25,6 +25,7 @@ import type {
   TokenUsageEntry,
   TokenAction,
   LoyaltyTier,
+  Service,
 } from "./types";
 import { computeCustomerInsight, computeSegments } from "./ai/engine";
 import { generateSuggestions } from "./ai/suggestions";
@@ -195,7 +196,7 @@ export async function getStampCardForCustomer(customerId: string): Promise<Stamp
   return (data as StampCard) ?? undefined;
 }
 
-async function earnStamps(customerId: string, transactionId: string, serviceIds: string[]) {
+export async function earnStamps(customerId: string, transactionId: string, serviceIds: string[]) {
   const { data: card, error } = await db()
     .from("stamp_cards")
     .select("*")
@@ -299,6 +300,113 @@ export async function createTransaction(input: {
 }
 
 /**
+ * Records a transaction that originated in an external system (the
+ * app.globowaxmalta.com check-in/payment tool) rather than the Club's own
+ * POS screen. Looks the customer up by mobile number — auto-registering
+ * them as a Club member if they don't have one yet, so points start
+ * accruing from their very first external visit. If a serviceName is
+ * given and matches a row in `services`, points/price and stamp-card
+ * progress follow that service exactly; otherwise falls back to the
+ * doc's default €1 = 1 point rate on the raw amount.
+ */
+export async function recordExternalTransaction(input: {
+  mobile: string;
+  name?: string;
+  surname?: string;
+  amount: number;
+  serviceName?: string;
+  paymentMethod?: Transaction["payment_method"];
+}): Promise<{ transaction: Transaction; ledgerEntry: PointsLedgerEntry; customer: Customer }> {
+  const client = db();
+
+  let { data: customer } = await client.from("customers").select("*").eq("mobile", input.mobile).maybeSingle();
+
+  // The two apps may store phone numbers in slightly different formats
+  // ("+356 9912 3456" vs "+35699123456"). If an exact match fails, compare
+  // digits-only before giving up and creating a new customer — this keeps
+  // the same person from ending up with two separate Club accounts just
+  // because of spacing.
+  if (!customer) {
+    const normalizedInput = input.mobile.replace(/[^\d+]/g, "");
+    const { data: candidates } = await client.from("customers").select("*").eq("tenant_id", TENANT_ID);
+    customer =
+      (candidates ?? []).find((c) => c.mobile.replace(/[^\d+]/g, "") === normalizedInput) ?? null;
+  }
+  if (!customer) {
+    customer = await registerCustomer({
+      name: input.name || "Globowax",
+      surname: input.surname || "Customer",
+      mobile: input.mobile,
+      email: null,
+      authUserId: null,
+    });
+  }
+
+  let matchedService: Service | null = null;
+  if (input.serviceName) {
+    const { data } = await client
+      .from("services")
+      .select("*")
+      .eq("tenant_id", TENANT_ID)
+      .ilike("name", input.serviceName)
+      .maybeSingle();
+    matchedService = (data as Service) ?? null;
+  }
+
+  const pointsEarned = matchedService ? matchedService.points_value : Math.round(input.amount);
+
+  const { data: transaction, error: txnErr } = await client
+    .from("transactions")
+    .insert({
+      tenant_id: TENANT_ID,
+      customer_id: customer.id,
+      vehicle_id: null,
+      staff_id: null,
+      total_amount: input.amount,
+      payment_method: input.paymentMethod ?? "card",
+    })
+    .select()
+    .single();
+  if (txnErr || !transaction) throw new Error(txnErr?.message ?? "Failed to record external transaction");
+
+  if (matchedService) {
+    await client.from("transaction_items").insert({
+      transaction_id: transaction.id,
+      service_id: matchedService.id,
+      price: input.amount,
+      points_earned: pointsEarned,
+    });
+  }
+
+  const newBalance = Number(customer.points_balance) + pointsEarned;
+  const { data: ledgerEntry, error: ledgerErr } = await client
+    .from("points_ledger")
+    .insert({
+      tenant_id: TENANT_ID,
+      customer_id: customer.id,
+      transaction_id: transaction.id,
+      type: "earning",
+      points: pointsEarned,
+      balance_after: newBalance,
+    })
+    .select()
+    .single();
+  if (ledgerErr || !ledgerEntry) throw new Error(ledgerErr?.message ?? "Failed to write ledger entry");
+
+  await recalculateTier(customer.id, newBalance);
+  if (matchedService) {
+    await earnStamps(customer.id, transaction.id, [matchedService.id]);
+  }
+  await recordTokenUsage("loyalty_transaction");
+
+  return {
+    transaction: transaction as Transaction,
+    ledgerEntry: ledgerEntry as PointsLedgerEntry,
+    customer: { ...customer, points_balance: newBalance } as Customer,
+  };
+}
+
+/**
  * Redeems a reward: debits the ledger (trigger updates the cached
  * balance), recalculates tier, and issues a redemption record with a
  * unique code.
@@ -389,6 +497,43 @@ export async function getCustomerByReferralCode(code: string): Promise<Customer 
   const { data, error } = await db().from("customers").select("*").eq("referral_code", code).maybeSingle();
   if (error) throw new Error(error.message);
   return (data as Customer) ?? undefined;
+}
+
+/**
+ * Looks up a customer by mobile number, tenant-wide — exact match first,
+ * then falling back to digits-only comparison (same logic as
+ * recordExternalTransaction) so a customer created by the
+ * app.globowaxmalta.com webhook is found even if the phone format
+ * differs slightly from what they type at signup.
+ */
+export async function findCustomerByMobile(mobile: string): Promise<Customer | undefined> {
+  const client = db();
+  const { data: exact } = await client.from("customers").select("*").eq("mobile", mobile).maybeSingle();
+  if (exact) return exact as Customer;
+
+  const normalizedInput = mobile.replace(/[^\d+]/g, "");
+  const { data: candidates } = await client.from("customers").select("*").eq("tenant_id", TENANT_ID);
+  return (candidates ?? []).find((c) => c.mobile.replace(/[^\d+]/g, "") === normalizedInput) as
+    | Customer
+    | undefined;
+}
+
+/**
+ * Links a Supabase Auth user to an existing customer row (rather than
+ * creating a new one) — used when someone signs up with a phone number
+ * that already has a Club account, e.g. from an earlier in-store visit
+ * reported by the webhook. Keeps their accumulated points intact instead
+ * of splitting them across two customer rows.
+ */
+export async function linkAuthUserToCustomer(customerId: string, authUserId: string): Promise<Customer> {
+  const { data, error } = await db()
+    .from("customers")
+    .update({ auth_user_id: authUserId })
+    .eq("id", customerId)
+    .select()
+    .single();
+  if (error || !data) throw new Error(error?.message ?? "Failed to link account");
+  return data as Customer;
 }
 
 export async function registerCustomer(input: {
