@@ -499,6 +499,62 @@ export async function getCustomerByReferralCode(code: string): Promise<Customer 
   return (data as Customer) ?? undefined;
 }
 
+// Redemption rate shared by the fixed Rewards catalog and this flexible
+// points-as-cash redemption: 20 points = €1 of discount value (5% cashback
+// on the €1=1pt earning rate). Keep this in sync with rewards.points_cost
+// if the ratio ever changes — see supabase/seed.sql for the catalog side.
+export const POINTS_PER_EURO = 20;
+
+/**
+ * Looks up a customer's current points balance by mobile — used by staff
+ * in app.globowaxmalta.com to check what a customer has available before
+ * offering a points redemption at checkout. Read-only, no side effects.
+ */
+export async function getCustomerBalanceByMobile(
+  mobile: string
+): Promise<{ found: false } | { found: true; name: string; surname: string; points_balance: number }> {
+  const customer = await findCustomerByMobile(mobile);
+  if (!customer) return { found: false };
+  return { found: true, name: customer.name, surname: customer.surname, points_balance: customer.points_balance };
+}
+
+/**
+ * Redeems an arbitrary number of points for cash-equivalent discount —
+ * the flexible alternative to the fixed Rewards catalog. Staff in
+ * app.globowaxmalta.com enters how many points a customer wants to use at
+ * checkout; this validates the balance, debits the ledger, and returns
+ * the €discount value so the payment total can be reduced by that amount
+ * before the customer pays the rest.
+ */
+export async function redeemPointsForCash(input: {
+  mobile: string;
+  points: number;
+}): Promise<{ discountValue: number; newBalance: number; customer: Customer }> {
+  if (input.points <= 0) throw new Error("Points must be a positive number");
+
+  const customer = await findCustomerByMobile(input.mobile);
+  if (!customer) throw new Error("No Globowax Club account found for this mobile number");
+  if (customer.points_balance < input.points) {
+    throw new Error(`Insufficient points balance (has ${customer.points_balance}, requested ${input.points})`);
+  }
+
+  const newBalance = customer.points_balance - input.points;
+  const { error: ledgerErr } = await db().from("points_ledger").insert({
+    tenant_id: TENANT_ID,
+    customer_id: customer.id,
+    transaction_id: null,
+    type: "redemption",
+    points: -input.points,
+    balance_after: newBalance,
+  });
+  if (ledgerErr) throw new Error(ledgerErr.message);
+
+  await recalculateTier(customer.id, newBalance);
+
+  const discountValue = Math.round((input.points / POINTS_PER_EURO) * 100) / 100;
+  return { discountValue, newBalance, customer: { ...customer, points_balance: newBalance } };
+}
+
 /**
  * Looks up a customer by mobile number, tenant-wide — exact match first,
  * then falling back to digits-only comparison (same logic as

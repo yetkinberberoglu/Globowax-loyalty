@@ -18,9 +18,9 @@ insert into services (id, tenant_id, name, price, points_value, category, durati
   ('33333333-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'Headlight Restoration', 50, 50, 'detailing', 60, true);
 
 insert into rewards (id, tenant_id, name, type, points_cost, value, active) values
-  ('44444444-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', '€10 off', 'fixed_discount', 500, 10, true),
-  ('44444444-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', '€25 off', 'fixed_discount', 1000, 25, true),
-  ('44444444-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Free Maintenance Wash', 'free_service', 2000, 40, true);
+  ('44444444-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', '€10 off', 'fixed_discount', 200, 10, true),
+  ('44444444-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', '€25 off', 'fixed_discount', 500, 25, true),
+  ('44444444-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Free Maintenance Wash', 'free_service', 800, 40, true);
 
 insert into customers (id, tenant_id, name, surname, email, mobile, marketing_consent, whatsapp_consent, sms_consent, email_consent, referral_code, points_balance, tier_id, created_at) values
   ('55555555-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'John', 'Smith', 'john.smith@example.com', '+35679000001', true, true, false, true, 'JOHN123', 1850, '22222222-0000-0000-0000-000000000003', '2025-03-14T09:00:00Z'),
