@@ -230,7 +230,7 @@ create table campaigns (
   name text not null,
   trigger text not null check (trigger in ('inactive_30d','birthday','spend_threshold','points_threshold','nth_visit')),
   trigger_value integer not null,
-  action text not null check (action in ('send_voucher','send_notification')),
+  action text not null check (action in ('send_voucher','send_notification','add_points')),
   action_config jsonb not null,
   active boolean not null default true
 );
