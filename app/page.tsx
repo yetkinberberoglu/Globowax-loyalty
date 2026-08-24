@@ -18,6 +18,9 @@ export default function Home() {
           Join the club
         </Link>
       </div>
+      <Link href="/check" className="text-polish text-sm hover:underline">
+        Just want to check your points? →
+      </Link>
       <Link href="/admin/login" className="text-fog text-xs hover:text-chalk mt-2">
         Staff sign in →
       </Link>
