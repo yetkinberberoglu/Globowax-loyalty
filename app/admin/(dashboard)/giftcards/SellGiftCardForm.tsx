@@ -34,6 +34,7 @@ export function SellGiftCardForm({
       setResult(`Issued ${data.card.code} — €${data.card.initial_value}`);
       setPurchaserName("");
       setRecipientId("");
+      window.open(`/admin/giftcards/print/${data.card.code}`, "_blank");
       startTransition(() => router.refresh());
     } else {
       setResult(data.error ?? "Something went wrong");

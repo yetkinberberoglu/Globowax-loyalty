@@ -43,6 +43,7 @@ export default async function GiftCardsPage() {
                   <th className="px-4 py-3 font-medium">Balance</th>
                   <th className="px-4 py-3 font-medium">Purchaser</th>
                   <th className="px-4 py-3 font-medium">Sold</th>
+                  <th className="px-4 py-3 font-medium"></th>
                 </tr>
               </thead>
               <tbody>
@@ -53,6 +54,11 @@ export default async function GiftCardsPage() {
                     <td className="px-4 py-3 font-medium">€{c.balance}</td>
                     <td className="px-4 py-3 text-fog">{c.purchaser_name}</td>
                     <td className="px-4 py-3 text-fog">{new Date(c.sold_at).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-right">
+                      <Link href={`/admin/giftcards/print/${c.code}`} target="_blank" className="text-polish text-xs hover:underline">
+                        Print →
+                      </Link>
+                    </td>
                   </tr>
                 ))}
               </tbody>

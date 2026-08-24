@@ -1068,6 +1068,11 @@ export async function sellGiftCard(input: {
   return card as GiftCard;
 }
 
+export async function getGiftCardByCode(code: string): Promise<GiftCard | null> {
+  const { data: card } = await db().from("gift_cards").select("*").eq("code", code).maybeSingle();
+  return (card as GiftCard) ?? null;
+}
+
 export async function redeemGiftCard(input: { code: string; amount: number }): Promise<GiftCard> {
   const client = db();
   const { data: card, error } = await client.from("gift_cards").select("*").eq("code", input.code).maybeSingle();
