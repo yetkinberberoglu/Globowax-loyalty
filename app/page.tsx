@@ -11,16 +11,16 @@ export default function Home() {
         </p>
       </div>
       <div className="flex gap-3 flex-wrap justify-center">
-        <Link href="/login" className="px-5 py-3 rounded-full bg-polish text-ink font-semibold hover:bg-polish-dim transition">
+        <Link href="/check" className="px-5 py-3 rounded-full bg-polish text-ink font-semibold hover:bg-polish-dim transition">
+          Check your points
+        </Link>
+        <Link href="/login" className="px-5 py-3 rounded-full border border-steel text-chalk hover:border-polish transition">
           Customer sign in
         </Link>
         <Link href="/signup" className="px-5 py-3 rounded-full border border-steel text-chalk hover:border-polish transition">
           Join the club
         </Link>
       </div>
-      <Link href="/check" className="text-polish text-sm hover:underline">
-        Just want to check your points? →
-      </Link>
       <Link href="/admin/login" className="text-fog text-xs hover:text-chalk mt-2">
         Staff sign in →
       </Link>
