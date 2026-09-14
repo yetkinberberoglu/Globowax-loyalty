@@ -11,7 +11,7 @@ import { recordExternalTransaction } from "@/lib/db";
  * Auth: shared secret via the X-Webhook-Secret header, checked against
  * the WEBHOOK_SECRET env var (set this to the same value on both apps).
  *
- * Body: { mobile, name?, surname?, amount, serviceName?, paymentMethod? }
+ * Body: { mobile, name?, surname?, amount, serviceName?, paymentMethod?, externalRef? }
  */
 export async function POST(req: Request) {
   const secret = req.headers.get("x-webhook-secret");
@@ -32,6 +32,7 @@ export async function POST(req: Request) {
       amount: body.amount,
       serviceName: body.serviceName,
       paymentMethod: body.paymentMethod,
+      externalRef: body.externalRef,
     });
     return NextResponse.json(result, { status: 201 });
   } catch (err) {

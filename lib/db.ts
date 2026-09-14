@@ -335,8 +335,36 @@ export async function recordExternalTransaction(input: {
   amount: number;
   serviceName?: string;
   paymentMethod?: Transaction["payment_method"];
-}): Promise<{ transaction: Transaction; ledgerEntry: PointsLedgerEntry; customer: Customer }> {
+  // A stable identifier for the source event (e.g. the vehicle's own id
+  // in app.globowaxmalta.com). When provided, a transaction is only ever
+  // recorded once per externalRef — a retried webhook call (e.g. after a
+  // dropped response on the caller's side, even if we'd already fully
+  // processed it) is detected and skipped instead of double-counting
+  // points, no matter how many times or how much later it's retried.
+  externalRef?: string;
+}): Promise<{ transaction: Transaction; ledgerEntry: PointsLedgerEntry | null; customer: Customer; duplicate?: boolean }> {
   const client = db();
+
+  if (input.externalRef) {
+    const { data: existingTxn } = await client
+      .from("transactions")
+      .select("*")
+      .eq("external_ref", input.externalRef)
+      .maybeSingle();
+    if (existingTxn) {
+      const { data: existingCustomer } = await client
+        .from("customers")
+        .select("*")
+        .eq("id", existingTxn.customer_id)
+        .single();
+      const { data: existingLedger } = await client
+        .from("points_ledger")
+        .select("*")
+        .eq("transaction_id", existingTxn.id)
+        .maybeSingle();
+      return { transaction: existingTxn, ledgerEntry: existingLedger ?? null, customer: existingCustomer, duplicate: true };
+    }
+  }
 
   let { data: customer } = await client.from("customers").select("*").eq("mobile", input.mobile).maybeSingle();
 
@@ -394,6 +422,7 @@ export async function recordExternalTransaction(input: {
       staff_id: null,
       total_amount: input.amount,
       payment_method: input.paymentMethod ?? "card",
+      external_ref: input.externalRef ?? null,
     })
     .select()
     .single();
