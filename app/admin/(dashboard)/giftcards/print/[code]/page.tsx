@@ -14,14 +14,27 @@ export default async function PrintGiftCardPage({ params }: { params: Promise<{ 
   const qr = await generateQRDataUrl(redeemUrl);
 
   return (
-    <main className="min-h-screen bg-ink flex flex-col items-center py-10 px-5 print:bg-white print:py-0">
+    <main className="gc-print-root min-h-screen bg-ink flex flex-col items-center py-10 px-5 print:bg-white print:py-0">
+      {/* Force browsers to print the dark card background/colours (otherwise PDF shows white-on-white) */}
+      <style>{`
+        @page { size: A5 landscape; margin: 0; }
+        .gc-print-root, .gc-print-root * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        @media print {
+          html, body { background: #ffffff !important; margin: 0; }
+          .gc-print-root { min-height: 0 !important; justify-content: center; height: 100vh; }
+          .gc-card { width: 560px !important; box-shadow: none !important; }
+        }
+      `}</style>
       <div className="print:hidden mb-6">
         <PrintButton />
       </div>
 
       {/* The card itself — sized to sit nicely on an A6/half-A5 print */}
       <div
-        className="relative w-[500px] max-w-full rounded-[28px] overflow-hidden shadow-2xl print:shadow-none"
+        className="gc-card relative w-[500px] max-w-full rounded-[28px] overflow-hidden shadow-2xl print:shadow-none"
         style={{
           background: "linear-gradient(135deg, #0B0C0C 0%, #17191A 55%, #0B0C0C 100%)",
           border: "1px solid #2A2D2E",
