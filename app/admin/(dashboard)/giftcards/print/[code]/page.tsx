@@ -51,9 +51,19 @@ export default async function PrintGiftCardPage({ params }: { params: Promise<{ 
               <p className="font-mono text-chalk text-2xl font-bold tracking-wider bg-graphite border border-steel rounded-lg px-4 py-3 inline-block">
                 {card.code}
               </p>
-              {card.purchaser_name && card.purchaser_name !== "Walk-in" && (
-                <p className="text-fog text-xs mt-3">A gift from {card.purchaser_name}</p>
+              {(card.to_name || card.from_name) ? (
+                <div className="mt-3 space-y-0.5">
+                  {card.to_name && <p className="text-chalk text-sm">To: <span className="font-semibold">{card.to_name}</span></p>}
+                  {card.from_name && <p className="text-chalk text-sm">From: <span className="font-semibold">{card.from_name}</span></p>}
+                </div>
+              ) : (
+                card.purchaser_name && card.purchaser_name !== "Walk-in" && (
+                  <p className="text-fog text-xs mt-3">A gift from {card.purchaser_name}</p>
+                )
               )}
+              <p className="text-polish text-xs mt-2 font-medium">
+                Valid for: {card.valid_for_service || "All services"}
+              </p>
             </div>
             <div className="bg-chalk rounded-xl p-2 shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}

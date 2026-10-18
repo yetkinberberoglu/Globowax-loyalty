@@ -26,5 +26,8 @@ export async function GET(req: Request) {
     initial_value: card.initial_value,
     balance: card.balance,
     purchaser_name: card.purchaser_name,
+    from_name: card.from_name ?? null,
+    to_name: card.to_name ?? null,
+    valid_for_service: card.valid_for_service ?? null, // null = all services
   });
 }

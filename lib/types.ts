@@ -267,6 +267,9 @@ export interface GiftCard {
   recipient_customer_id: string | null; // linked once assigned/redeemed to a customer's account
   qr_code: string;
   sold_at: string;
+  from_name?: string | null; // "From" printed on the card (gift cards)
+  to_name?: string | null; // "To" printed on the card (gift cards)
+  valid_for_service?: string | null; // null/empty = all services
 }
 
 export type ChurnRisk = "low" | "medium" | "high";

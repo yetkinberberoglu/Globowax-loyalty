@@ -21,9 +21,18 @@ export default async function RedeemGiftCardPage({ params }: { params: Promise<{
 
         <div className="rounded-card border border-steel bg-graphite p-6 mb-6">
           <p className="font-mono text-polish text-xl font-bold text-center tracking-wider">{card.code}</p>
-          {card.purchaser_name && card.purchaser_name !== "Walk-in" && (
-            <p className="text-fog text-xs text-center mt-1">A gift from {card.purchaser_name}</p>
+          {(card.to_name || card.from_name) ? (
+            <p className="text-fog text-xs text-center mt-1">
+              {card.to_name ? `To ${card.to_name}` : ""}{card.to_name && card.from_name ? " · " : ""}{card.from_name ? `From ${card.from_name}` : ""}
+            </p>
+          ) : (
+            card.purchaser_name && card.purchaser_name !== "Walk-in" && (
+              <p className="text-fog text-xs text-center mt-1">A gift from {card.purchaser_name}</p>
+            )
           )}
+          <p className="text-polish text-xs text-center mt-2 font-medium">
+            Valid for: {card.valid_for_service || "All services"}
+          </p>
           <div className="flex justify-center gap-8 mt-4 text-center">
             <div>
               <p className="text-fog text-[10px] uppercase tracking-wide">Initial</p>

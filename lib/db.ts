@@ -1075,6 +1075,9 @@ export async function sellGiftCard(input: {
   amount: number;
   purchaserName: string;
   recipientCustomerId: string | null;
+  fromName?: string;
+  toName?: string;
+  validForService?: string | null;
 }): Promise<GiftCard> {
   if (!GIFT_CARD_DENOMINATIONS.includes(input.amount)) {
     throw new Error(`Amount must be one of: ${GIFT_CARD_DENOMINATIONS.join(", ")}`);
@@ -1089,6 +1092,9 @@ export async function sellGiftCard(input: {
       balance: input.amount,
       purchaser_name: input.purchaserName || "Walk-in",
       recipient_customer_id: input.recipientCustomerId,
+      from_name: input.fromName?.trim() || null,
+      to_name: input.toName?.trim() || null,
+      valid_for_service: input.validForService?.trim() || null,
       qr_code: code,
     })
     .select()

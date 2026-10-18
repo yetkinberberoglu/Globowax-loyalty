@@ -15,6 +15,9 @@ export async function POST(req: Request) {
       amount: body.amount,
       purchaserName: body.purchaserName ?? "",
       recipientCustomerId: body.recipientCustomerId ?? null,
+      fromName: body.fromName ?? "",
+      toName: body.toName ?? "",
+      validForService: body.validForService ?? null,
     });
     return NextResponse.json({ card }, { status: 201 });
   } catch (err) {

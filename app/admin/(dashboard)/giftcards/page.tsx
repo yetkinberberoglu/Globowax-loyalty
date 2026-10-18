@@ -41,7 +41,8 @@ export default async function GiftCardsPage() {
                   <th className="px-4 py-3 font-medium">Code</th>
                   <th className="px-4 py-3 font-medium">Initial</th>
                   <th className="px-4 py-3 font-medium">Balance</th>
-                  <th className="px-4 py-3 font-medium">Purchaser</th>
+                  <th className="px-4 py-3 font-medium">From → To</th>
+                  <th className="px-4 py-3 font-medium">Valid for</th>
                   <th className="px-4 py-3 font-medium">Sold</th>
                   <th className="px-4 py-3 font-medium"></th>
                 </tr>
@@ -52,7 +53,10 @@ export default async function GiftCardsPage() {
                     <td className="px-4 py-3 font-mono text-polish">{c.code}</td>
                     <td className="px-4 py-3 text-fog">€{c.initial_value}</td>
                     <td className="px-4 py-3 font-medium">€{c.balance}</td>
-                    <td className="px-4 py-3 text-fog">{c.purchaser_name}</td>
+                    <td className="px-4 py-3 text-fog">
+                      {c.from_name || c.to_name ? `${c.from_name || "—"} → ${c.to_name || "—"}` : c.purchaser_name}
+                    </td>
+                    <td className="px-4 py-3 text-fog">{c.valid_for_service || "All services"}</td>
                     <td className="px-4 py-3 text-fog">{new Date(c.sold_at).toLocaleDateString()}</td>
                     <td className="px-4 py-3 text-right">
                       <Link href={`/admin/giftcards/print/${c.code}`} target="_blank" className="text-polish text-xs hover:underline">
