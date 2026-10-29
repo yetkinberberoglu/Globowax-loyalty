@@ -1,14 +1,14 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { listAllGiftCards, listGiftCardDenominations, listCustomers, getTenant } from "@/lib/db";
+import { listAllGiftCards, listGiftCardDenominations, listCustomersForPicker, getTenant } from "@/lib/db";
 import { SellGiftCardForm } from "./SellGiftCardForm";
 
 export default async function GiftCardsPage() {
   const [cards, denominations, customers, tenant] = await Promise.all([
     listAllGiftCards(),
     listGiftCardDenominations(),
-    listCustomers(),
+    listCustomersForPicker(),
     getTenant(),
   ]);
 

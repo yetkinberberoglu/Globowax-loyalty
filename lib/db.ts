@@ -103,6 +103,47 @@ export async function listCustomers(): Promise<Customer[]> {
   return (data ?? []) as Customer[];
 }
 
+/**
+ * Customers trimmed down for the staff-facing customer picker, with each
+ * person's registration numbers attached so a search can match on plate
+ * as well as name or mobile. Two queries instead of a join because
+ * vehicles is small and this keeps the Supabase types simple.
+ */
+export type CustomerPickerEntry = {
+  id: string;
+  name: string;
+  surname: string;
+  mobile: string;
+  plates: string[];
+};
+
+export async function listCustomersForPicker(): Promise<CustomerPickerEntry[]> {
+  const [customersRes, vehiclesRes] = await Promise.all([
+    db()
+      .from("customers")
+      .select("id,name,surname,mobile")
+      .eq("tenant_id", TENANT_ID)
+      .order("name"),
+    db()
+      .from("vehicles")
+      .select("customer_id,reg_number")
+      .eq("tenant_id", TENANT_ID),
+  ]);
+  if (customersRes.error) throw new Error(customersRes.error.message);
+  // A missing vehicles table shouldn't break the picker — plates are optional.
+  const platesByCustomer = new Map<string, string[]>();
+  for (const v of (vehiclesRes.data ?? []) as { customer_id: string; reg_number: string | null }[]) {
+    if (!v.reg_number) continue;
+    const list = platesByCustomer.get(v.customer_id) ?? [];
+    list.push(v.reg_number);
+    platesByCustomer.set(v.customer_id, list);
+  }
+  return ((customersRes.data ?? []) as Omit<CustomerPickerEntry, "plates">[]).map((c) => ({
+    ...c,
+    plates: platesByCustomer.get(c.id) ?? [],
+  }));
+}
+
 export async function getCustomer(id: string): Promise<Customer | undefined> {
   const { data, error } = await db().from("customers").select("*").eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
